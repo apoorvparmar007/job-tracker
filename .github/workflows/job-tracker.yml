@@ -1,0 +1,40 @@
+name: Germany Job Tracker
+
+on:
+  schedule:
+    # Runs every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC.
+    # To run every 3 hours instead, use: '0 */3 * * *'
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}  # allows manual "Run workflow" trigger from the Actions tab
+
+permissions:
+  contents: write  # needed to commit the updated spreadsheet + seen_jobs.json back to the repo
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run job tracker
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python tracker.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "job-tracker-bot"
+          git config user.email "actions@github.com"
+          git add data/job_matches.xlsx data/seen_jobs.json
+          git diff --cached --quiet && echo "No changes to commit" || git commit -m "Update job tracker $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
