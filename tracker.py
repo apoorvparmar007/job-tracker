@@ -53,10 +53,10 @@ SEEN_JOBS_PATH = DATA_DIR / "seen_jobs.json"
 OUTPUT_XLSX = DATA_DIR / "job_matches.xlsx"
 
 SEARCHES = [
-    # {"keywords": "Data Scientist", "location": "Germany"}
-    # {"keywords": "Data Scientist", "location": "Dubai"}
+    # {"keywords": "Data Scientist", "location": "Germany"},
+    {"keywords": "Data Scientist", "location": "Dubai"}
     # {"keywords": "Data Scientist", "location": "Netherlands"}
-    {"keywords": "Data Scientist", "location": "Abu Dhabi"}
+    # {"keywords": "Data Scientist", "location": "Abu Dhabi"},
     # {"keywords": "Data Scientist", "location": "Denmark"}
 ]
 
