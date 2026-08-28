@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Germany Data Scientist / AI Engineer job tracker for Apoorv Parmar.
+Dubai Data Scientist / AI Engineer job tracker for Apoorv Parmar.
 
 Pulls fresh LinkedIn postings via Apify, scores them against Apoorv's resume
 profile, excludes known recruiting-mill / non-fit sources, diffs against
@@ -690,6 +690,12 @@ def main():
 
     rebuild_workbook(list(existing_records.values()))
     save_seen_jobs(seen)
+
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as f:
+            f.write(f"new_count={new_count}\n")
+            f.write(f"reclosed_count={reclosed}\n")
 
 
 if __name__ == "__main__":
