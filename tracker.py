@@ -53,7 +53,7 @@ SEEN_JOBS_PATH = DATA_DIR / "seen_jobs.json"
 OUTPUT_XLSX = DATA_DIR / "job_matches.xlsx"
 
 SEARCHES = [
-    {"keywords": "Data Scientist", "location": "Germany"},
+    # {"keywords": "Data Scientist", "location": "Germany"},
     {"keywords": "Data Scientist", "location": "Dubai"},
     # {"keywords": "Data Scientist", "location": "Netherlands"}
     {"keywords": "Data Scientist", "location": "Abu Dhabi"}
@@ -639,13 +639,22 @@ def main():
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
-        MAX_JOBS_IN_MESSAGE = 20  # keep well under Telegram's 4096-char message limit
-        lines = [
-            f"{j['title']} @ {j['company']} (score: {j['score']})\n{j['link']}"
-            for j in new_jobs[:MAX_JOBS_IN_MESSAGE]
-        ]
-        if len(new_jobs) > MAX_JOBS_IN_MESSAGE:
-            lines.append(f"... and {len(new_jobs) - MAX_JOBS_IN_MESSAGE} more.")
+        # Telegram hard-caps messages at 4096 UTF-8 chars. Budget for the summary
+        # line (~100 chars) and build the job list up to that budget, cutting off
+        # by size rather than a fixed job count since titles/links vary in length.
+        MAX_MESSAGE_CHARS = 4096
+        JOB_LIST_BUDGET = MAX_MESSAGE_CHARS - 200
+        lines = []
+        included = 0
+        for j in new_jobs:
+            entry = f"{j['title']} @ {j['company']} (score: {j['score']})\n{j['link']}"
+            projected_len = len("\n\n".join(lines + [entry]))
+            if projected_len > JOB_LIST_BUDGET:
+                break
+            lines.append(entry)
+            included += 1
+        if included < len(new_jobs):
+            lines.append(f"... and {len(new_jobs) - included} more.")
         new_jobs_text = "\n\n".join(lines)
 
         with open(github_output, "a") as f:
