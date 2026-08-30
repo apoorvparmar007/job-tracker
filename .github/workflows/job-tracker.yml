@@ -51,9 +51,7 @@ jobs:
           if [ "${{ job.status }}" = "success" ]; then
             TEXT="Job Tracker run OK: ${NEW_COUNT} new job(s) added."
             if [ -n "$NEW_JOBS" ]; then
-              TEXT="${TEXT}
-
-${NEW_JOBS}"
+              TEXT="${TEXT}"$'\n\n'"${NEW_JOBS}"
             fi
           else
             TEXT="Job Tracker run FAILED. Check the Actions log."
