@@ -53,11 +53,11 @@ SEEN_JOBS_PATH = DATA_DIR / "seen_jobs.json"
 OUTPUT_XLSX = DATA_DIR / "job_matches.xlsx"
 
 SEARCHES = [
-    # {"keywords": "Data Scientist", "location": "Germany"},
+    {"keywords": "Data Scientist", "location": "Germany"},
     {"keywords": "Data Scientist", "location": "Dubai"},
-    # {"keywords": "Data Scientist", "location": "Netherlands"}
-    {"keywords": "Data Scientist", "location": "Abu Dhabi"}
-    # {"keywords": "Data Scientist", "location": "Denmark"}
+    {"keywords": "Data Scientist", "location": "Netherlands"},
+    {"keywords": "Data Scientist", "location": "Abu Dhabi"},
+    {"keywords": "Data Scientist", "location": "Denmark"}
 ]
 
 ATS_THRESHOLD = 75
@@ -639,6 +639,10 @@ def main():
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
+        # Only notify about jobs that cleared the match-score bar -- a new job
+        # below threshold is still tracked/deduped, just not worth pinging about.
+        notify_jobs = [j for j in new_jobs if j["score"] > ATS_THRESHOLD]
+
         # Telegram hard-caps messages at 4096 UTF-8 chars. Budget for the summary
         # line (~100 chars) and build the job list up to that budget, cutting off
         # by size rather than a fixed job count since titles/links vary in length.
@@ -646,19 +650,19 @@ def main():
         JOB_LIST_BUDGET = MAX_MESSAGE_CHARS - 200
         lines = []
         included = 0
-        for j in new_jobs:
+        for j in notify_jobs:
             entry = f"{j['title']} @ {j['company']} (score: {j['score']})\n{j['link']}"
             projected_len = len("\n\n".join(lines + [entry]))
             if projected_len > JOB_LIST_BUDGET:
                 break
             lines.append(entry)
             included += 1
-        if included < len(new_jobs):
-            lines.append(f"... and {len(new_jobs) - included} more.")
+        if included < len(notify_jobs):
+            lines.append(f"... and {len(notify_jobs) - included} more.")
         new_jobs_text = "\n\n".join(lines)
 
         with open(github_output, "a") as f:
-            f.write(f"new_count={new_count}\n")
+            f.write(f"new_count={len(notify_jobs)}\n")
             f.write("new_jobs<<GH_OUTPUT_EOF\n")
             f.write(f"{new_jobs_text}\n")
             f.write("GH_OUTPUT_EOF\n")
