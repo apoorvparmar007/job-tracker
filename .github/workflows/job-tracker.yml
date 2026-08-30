@@ -35,7 +35,8 @@ jobs:
         run: |
           git config user.name "job-tracker-bot"
           git config user.email "actions@github.com"
-          git add data/job_matches.xlsx data/seen_jobs.json
+          # data/job_matches.xlsx is no longer written/committed -- notifications go via Telegram instead.
+          git add data/seen_jobs.json
           git diff --cached --quiet && echo "No changes to commit" || git commit -m "Update job tracker $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
 
@@ -45,11 +46,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NEW_COUNT: ${{ steps.run_tracker.outputs.new_count }}
-          RECLOSED_COUNT: ${{ steps.run_tracker.outputs.reclosed_count }}
           NEW_JOBS: ${{ steps.run_tracker.outputs.new_jobs }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            TEXT="Job Tracker run OK: ${NEW_COUNT} new job(s) added, ${RECLOSED_COUNT} listing(s) newly marked closed."
+            TEXT="Job Tracker run OK: ${NEW_COUNT} new job(s) added."
             if [ -n "$NEW_JOBS" ]; then
               TEXT="${TEXT}
 

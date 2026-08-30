@@ -53,10 +53,10 @@ SEEN_JOBS_PATH = DATA_DIR / "seen_jobs.json"
 OUTPUT_XLSX = DATA_DIR / "job_matches.xlsx"
 
 SEARCHES = [
-    # {"keywords": "Data Scientist", "location": "Germany"},
-    {"keywords": "Data Scientist", "location": "Dubai"}
+    {"keywords": "Data Scientist", "location": "Germany"},
+    {"keywords": "Data Scientist", "location": "Dubai"},
     # {"keywords": "Data Scientist", "location": "Netherlands"}
-    # {"keywords": "Data Scientist", "location": "Abu Dhabi"},
+    {"keywords": "Data Scientist", "location": "Abu Dhabi"}
     # {"keywords": "Data Scientist", "location": "Denmark"}
 ]
 
@@ -431,44 +431,6 @@ def job_uid(job: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Still-open check for previously tracked postings
-# ---------------------------------------------------------------------------
-# LinkedIn's public job page HTML includes recognizable text when a posting
-# has closed. This is a plain HTTP GET (no Apify credit spent) so it's cheap
-# enough to run against every currently-open row each cycle. It's still
-# best-effort: LinkedIn can change this markup at any time without notice.
-
-CLOSED_MARKERS = [
-    "no longer accepting applications",
-    "this job is no longer available",
-    "applications are no longer being accepted",
-]
-
-CHECK_TIMEOUT = 15
-MAX_STILL_OPEN_CHECKS = 40  # cap per run so a large backlog doesn't blow up runtime
-
-
-def check_still_open(url: str) -> bool:
-    """Returns True if open (or unknown/unverifiable), False if confirmed closed."""
-    try:
-        resp = requests.get(
-            url,
-            timeout=CHECK_TIMEOUT,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; JobTrackerBot/1.0)"},
-        )
-        if resp.status_code == 404:
-            return False
-        text = resp.text.lower()
-        for marker in CLOSED_MARKERS:
-            if marker in text:
-                return False
-        return True
-    except requests.RequestException:
-        # Network hiccup -- don't punish the listing for our own failure to check.
-        return True
-
-
-# ---------------------------------------------------------------------------
 # Persistence (seen jobs across runs)
 # ---------------------------------------------------------------------------
 
@@ -668,36 +630,18 @@ def main():
 
     print(f"{new_count} new job(s) added this run.")
 
-    # Re-check a bounded number of previously-tracked, currently-open rows
-    # to catch postings that closed since they were first added (this is
-    # the check that would have caught the Simon-Kucher listing closing
-    # within 20 hours). Cheapest-first: skip rows already marked Closed.
-    open_rows = [r for r in existing_records.values() if r["still_open"] != "Closed"]
-    checked = 0
-    reclosed = 0
-    for rec in open_rows:
-        if checked >= MAX_STILL_OPEN_CHECKS:
-            break
-        # Don't bother re-checking something added in this very run --
-        # it was just confirmed open by the fresh Apify fetch.
-        if rec["fetch_run"].startswith("New this run"):
-            continue
-        still_open = check_still_open(rec["link"])
-        checked += 1
-        if not still_open:
-            rec["still_open"] = "Closed"
-            reclosed += 1
+    # Closure re-check disabled: notifications now go via Telegram instead of
+    # the spreadsheet, and there's no persisted record store left to re-check
+    # previously-tracked listings against.
 
-    print(f"Re-checked {checked} previously tracked listing(s); {reclosed} newly marked Closed.")
-
-    rebuild_workbook(list(existing_records.values()))
+    # rebuild_workbook(list(existing_records.values()))  # disabled: notifications now go via Telegram instead of the spreadsheet
     save_seen_jobs(seen)
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         MAX_JOBS_IN_MESSAGE = 20  # keep well under Telegram's 4096-char message limit
         lines = [
-            f"{j['title']} @ {j['company']}\n{j['link']}"
+            f"{j['title']} @ {j['company']} (score: {j['score']})\n{j['link']}"
             for j in new_jobs[:MAX_JOBS_IN_MESSAGE]
         ]
         if len(new_jobs) > MAX_JOBS_IN_MESSAGE:
@@ -706,7 +650,6 @@ def main():
 
         with open(github_output, "a") as f:
             f.write(f"new_count={new_count}\n")
-            f.write(f"reclosed_count={reclosed}\n")
             f.write("new_jobs<<GH_OUTPUT_EOF\n")
             f.write(f"{new_jobs_text}\n")
             f.write("GH_OUTPUT_EOF\n")
