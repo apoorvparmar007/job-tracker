@@ -44,9 +44,17 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NEW_COUNT: ${{ steps.run_tracker.outputs.new_count }}
+          RECLOSED_COUNT: ${{ steps.run_tracker.outputs.reclosed_count }}
+          NEW_JOBS: ${{ steps.run_tracker.outputs.new_jobs }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            TEXT="Job Tracker run OK: ${{ steps.run_tracker.outputs.new_count }} new job(s) added, ${{ steps.run_tracker.outputs.reclosed_count }} listing(s) newly marked closed."
+            TEXT="Job Tracker run OK: ${NEW_COUNT} new job(s) added, ${RECLOSED_COUNT} listing(s) newly marked closed."
+            if [ -n "$NEW_JOBS" ]; then
+              TEXT="${TEXT}
+
+${NEW_JOBS}"
+            fi
           else
             TEXT="Job Tracker run FAILED. Check the Actions log."
           fi

@@ -619,6 +619,7 @@ def main():
     existing_records = load_existing_records()
 
     new_count = 0
+    new_jobs = []
     all_raw_jobs = []
 
     for search in SEARCHES:
@@ -663,6 +664,7 @@ def main():
         # this job for a real Gemini score instead of it being stuck on the
         # degraded fallback score forever.
         new_count += 1
+        new_jobs.append(record)
 
     print(f"{new_count} new job(s) added this run.")
 
@@ -693,9 +695,21 @@ def main():
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
+        MAX_JOBS_IN_MESSAGE = 20  # keep well under Telegram's 4096-char message limit
+        lines = [
+            f"{j['title']} @ {j['company']}\n{j['link']}"
+            for j in new_jobs[:MAX_JOBS_IN_MESSAGE]
+        ]
+        if len(new_jobs) > MAX_JOBS_IN_MESSAGE:
+            lines.append(f"... and {len(new_jobs) - MAX_JOBS_IN_MESSAGE} more.")
+        new_jobs_text = "\n\n".join(lines)
+
         with open(github_output, "a") as f:
             f.write(f"new_count={new_count}\n")
             f.write(f"reclosed_count={reclosed}\n")
+            f.write("new_jobs<<GH_OUTPUT_EOF\n")
+            f.write(f"{new_jobs_text}\n")
+            f.write("GH_OUTPUT_EOF\n")
 
 
 if __name__ == "__main__":
