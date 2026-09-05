@@ -56,8 +56,8 @@ SEARCHES = [
     {"keywords": "Data Scientist", "location": "Germany"},
     {"keywords": "Data Scientist", "location": "Dubai"},
     {"keywords": "Data Scientist", "location": "Netherlands"},
-    {"keywords": "Data Scientist", "location": "Abu Dhabi"},
-    {"keywords": "Data Scientist", "location": "Denmark"}
+    {"keywords": "Data Scientist", "location": "Abu Dhabi"}
+    # {"keywords": "Data Scientist", "location": "Denmark"}
 ]
 
 ATS_THRESHOLD = 75
